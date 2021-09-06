@@ -1,5 +1,5 @@
-#ifndef ERPROC_H
-#define ERPROC_H
+#ifndef CLIENTSERVER_H
+#define CLIENTSERVER_H
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -11,12 +11,16 @@
 
 class Connection {
 protected:
-    enum status{
-        failed = -1,
-        up = 0,
+    enum status_ {
+        up,
+        faild,
+        slip,
+        listen,
     };
 
-    int8_t status_;
+    struct sockaddr_in adr = {0};
+    int8_t status;
+    int socket;
     uint16_t port = 37123;
     const int buffer_size = 256; 
 
@@ -25,8 +29,6 @@ protected:
 public:
     void SetPort(uint16_t);
     uint16_t GetPort();
-
-    int8_t GetStatus();
 };
 
 
@@ -34,14 +36,15 @@ class Client : public Connection{
 private:
     char* adress;
 
+    void Connect(int, const struct sockaddr*, socklen_t);
+    void Inet_pton(int, const char*, void*);
+
 public:
+    Client() {};
     // adress
     Client(char*) {};
     // adress, port
-    Client(const char*, const uint16_t) {};
-
-    void Connect(int, const struct sockaddr*, socklen_t);
-    void Inet_pton(int, const char*, void*);
+    Client(char*, uint16_t) {};
 
     void Connect();
     void Reconnect();
@@ -52,19 +55,25 @@ class Server : public Connection {
 private:
     int8_t count_client;
 
+    void Bind(int, const struct sockaddr*, socklen_t);
+    void Listen(int, int);
+    int Accept(int, struct sockaddr*, socklen_t*);
+
 public:
+    Server() {}
     // countclient
     Server(int8_t) {};
     // countclient, port
-    Server(const int8_t, const uint16_t) {};
+    Server(int8_t, uint16_t) {};
 
-    void Bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-    void Listen(int sockfd, int backlog);
-    int Accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+    
 
     void Start();
+    void StartListen();
     void Restart();
+    void Slip();
     void Stop();
 };
+
 
 #endif
