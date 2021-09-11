@@ -8,25 +8,35 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <thread>
 
 class Connection {
 protected:
-    enum status_ {
+    /*enum status_ {
         up,
         faild,
         slip,
         listen,
-    };
+    };*/
 
     struct sockaddr_in adr = {0};
-    int8_t status;
-    int socket;
+    int socket_;
     uint16_t port = 37123;
-    const int buffer_size = 256; 
 
-    int Socket(int, int, int);
+    int buffer_size = 256;
+
+
+    void Socket(int, int, int);
 
 public:
+    int GetSocket();
+
+    int GetBufferSize();
+    void SetBufferSize(int);
+
+    int Read(int, char*, int);
+    void Write(int ,char*, int);
+
     void SetPort(uint16_t);
     uint16_t GetPort();
 };
@@ -35,16 +45,19 @@ public:
 class Client : public Connection{
 private:
     char* adress;
+    char* name_client;
 
     void Connect(int, const struct sockaddr*, socklen_t);
     void Inet_pton(int, const char*, void*);
 
 public:
-    Client() {};
+    Client();
     // adress
-    Client(char*) {};
+    Client(char*, char*);
     // adress, port
-    Client(char*, uint16_t) {};
+    Client(char*, char*, uint16_t);
+
+    char* GetNameClient();
 
     void Connect();
     void Reconnect();
@@ -54,19 +67,23 @@ public:
 class Server : public Connection {
 private:
     int8_t count_client;
+    int accept_ = -1;
+    char* name_server;
 
     void Bind(int, const struct sockaddr*, socklen_t);
     void Listen(int, int);
     int Accept(int, struct sockaddr*, socklen_t*);
 
 public:
-    Server() {}
+    Server();
     // countclient
-    Server(int8_t) {};
+    Server(char* , int8_t);
     // countclient, port
-    Server(int8_t, uint16_t) {};
+    Server(char*, int8_t, uint16_t);
 
-    
+    int GetAccept();
+
+    char* GetNameServer();
 
     void Start();
     void StartListen();

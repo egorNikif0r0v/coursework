@@ -1,4 +1,4 @@
-#include "../header/clientserver.h"
+#include "header/clientserver.h"
 
 //...
 void Connection::SetPort(uint16_t port) {
@@ -7,15 +7,37 @@ void Connection::SetPort(uint16_t port) {
 uint16_t Connection::GetPort() {
     return this->port;
 }
-int Connection::Socket(int domain, int type, int protocol) {
-    this->status = socket(domain, type, protocol);
-    if(this->status == -1) {
-        perror("socket :: fail");
+
+void Connection::Socket(int domain, int type, int protocol) {
+    this->socket_ = socket(domain, type, protocol);
+    if(this->socket_ == -1) {
+        perror("socket :: fail\n");
         exit(EXIT_FAILURE);
     } else {
-        perror("socket :: OK");
+        perror("socket :");
     }
-    return this->status;
+}
+int Connection::GetSocket() {
+    return socket_;
+}
+
+int Connection::GetBufferSize() {
+    return buffer_size;
+}
+void Connection::SetBufferSize(int buffer_size) {
+    this->buffer_size = buffer_size;
+}
+
+int Connection::Read(int user, char* buffer, int buffer_size) {
+    int nread = read(user, buffer, buffer_size);
+    if(nread == -1) {
+        perror("read failed");
+        exit(EXIT_FAILURE);
+    }
+    return nread;
+}
+void Connection::Write(int user, char* buffer, int nread) {
+    write(user, buffer, nread);
 }
 //...
 
@@ -23,56 +45,59 @@ int Connection::Socket(int domain, int type, int protocol) {
 //...
 Client::Client() {
     this->adress = "127.0.0.1";
-    Client::Connect();
+    this->name_client = "non";
 }
-Client::Client(char* adress) {
+Client::Client(char* name_client, char* adress){
     this->adress = adress;
+    this->name_client = name_client;
 }
-Client::Client(char* adress, uint16_t port) {
-    this->adress = adress;
+Client::Client(char* name_client, char* adress, uint16_t port) : Client(name_client, adress){
     this->port = port;
-    Client::Connect();
+}
+
+char* Client::GetNameClient() {
+    return name_client;
 }
 
 void Client::Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    this->status = connect(sockfd, addr, addrlen);
-    if(this->status == -1) {
-        perror("connect fail\n");
+    uint8_t status = connect(sockfd, addr, addrlen);
+    if(status == -1) {
+        perror("connect fail");
         exit(EXIT_FAILURE);
     }else {
-        perror("connect :: OK\n");
+        perror("connect :");
     }
 }
-void Inet_pton(int af, const char *src, void *dst) {
-int status = inet_pton(af, src, dst);
+void Client::Inet_pton(int af, const char *src, void *dst) {
+uint8_t status = inet_pton(af, src, dst);
     if(status == 0) {
         printf("inet_pton :: fail: src does not contain a character"
             " string representing a valid network address in the specified"
-            " address family\n");
+            " address family");
         exit(EXIT_FAILURE);
     } else if(status == -1) {
-        perror("inet_pton :: fail\n");
+        perror("inet_pton :: fail");
         exit(EXIT_FAILURE);
     } else {
-        perror("inet_pton :: OK\n");
+        perror("inet_pton :");
     }
 }
 
 void Client::Connect() {
-    int socket = Connection::Socket(AF_INET, SOCK_STREAM, 0);
+    Connection::Socket(AF_INET, SOCK_STREAM, 0);
 
     this->adr.sin_family = AF_INET;
     this->adr.sin_port = htons(this->port);
 
     Client::Inet_pton(AF_INET, this->adress, &this->adr.sin_addr);
-    Client::Connect(socket, (struct sockaddr *) &this->adr, sizeof adr);
+    Client::Connect(socket_, (struct sockaddr *) &this->adr, sizeof adr);
 }
 void Client::Reconnect() {
-    close(socket);
+    close(socket_);
     Client::Connect();
 }
 void Client::Disconnect() {
-    close(socket);
+    close(socket_);
 }
 //...
 
@@ -80,68 +105,75 @@ void Client::Disconnect() {
 //...
 Server::Server() {
     this->count_client = 1;
-    Server::Start();
+    this->name_server = "non";
 }
-Server::Server(int8_t count_client) {
+Server::Server(char* name_server, int8_t count_client) {
     this->count_client = count_client;
-    Server::Start();
+    this->name_server = name_server;
 }
-Server::Server(int8_t count_client, uint16_t port) {
-    this->count_client = count_client;
+Server::Server(char* name_server, int8_t count_client, uint16_t port) : Server(name_server, count_client) {
     this->port = port;
-    Server::Start();
+}
+
+char* Server::GetNameServer() {
+    return this->name_server;
 }
 
 void Server::Bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    this->status = bind(sockfd, addr, addrlen);
-    if (this->status == -1) {
-        perror("bind :: failed");
+    uint8_t status = bind(sockfd, addr, addrlen);
+    if (status == -1) {
+        perror("bind :: failed\n");
         exit(EXIT_FAILURE);
     }else {
-        perror("bind :: OK\n");
+        perror("bind :");
     }
 }
 void Server::Listen(int sockfd, int backlog) {
-    this->status = listen(sockfd, backlog);
-    if (this->status == -1) {
+    uint8_t status = listen(sockfd, backlog);
+    if (status == -1) {
         perror("listen :: fail\n");
         exit(EXIT_FAILURE);
     }else {
-        perror("listen :: OK\n");
+        perror("listen :");
     }
 }
 int Server::Accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
-    this->status = accept(sockfd, addr, addrlen);
-    if (this->status == -1) {
-        perror("accept :: fail\n");
+    this->accept_ = accept(sockfd, addr, addrlen);
+    if (this->accept_ == -1) {
+        perror("accept :: fail");
         exit(EXIT_FAILURE);
     }else {
-        perror("accept :: OK\n");
+        perror("accept :");
     }
-    return this->status;
+    return this->accept_;
+}
+
+int Server::GetAccept() {
+    return this->accept_;
 }
 
 void Server::Start() {
-    int socket = Socket(AF_INET, SOCK_STREAM, 0);
+    Socket(AF_INET, SOCK_STREAM, 0);
     this->adr = {0};
     adr.sin_family = AF_INET;
     adr.sin_port = htons(this->port);
-    Bind(socket, (struct sockaddr *) &this->adr, sizeof this->adr);
+    Bind(this->socket_, (struct sockaddr *) &this->adr, sizeof this->adr);
 }
 void Server::StartListen() {
-    Server::Listen(this->socket, this->count_client);
+    Server::Listen(this->socket_, this->count_client);
     socklen_t adrlen = sizeof this->adr;
-    int accept = Server::Accept(this->socket, (struct sockaddr *) &this->adr, &adrlen);
+    this->accept_ = Server::Accept(this->socket_, (struct sockaddr *) &this->adr, &adrlen);
 }
 void Server::Restart() {
-    //close(this->fd);
-    close(this->port);
+    Stop();
     Start();
 }
 void Server::Stop() {
-    //close(this->fd);
-    close(this->port);
+    exit(EXIT_FAILURE);
+    close(this->accept_);
+    close(this->socket_);
 }
+
 //...
 
 
