@@ -1,0 +1,17 @@
+{
+    "connect":{
+        "path":{
+            "certfile":"./ssl/server.crt",
+            "keyfile":"./ssl/server.key"
+        },
+        "node_data":{
+            "host":"127.0.0.1",
+            "port":"5001",
+            "total_users":"10"
+        },
+        "ssl_data":{
+            "ssl_version":"tlsv1.2",
+            "ciphers":"None"
+        }
+    }
+}
